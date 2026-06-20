@@ -119,6 +119,66 @@ sudo dpkg -i otelcol-contrib_linux_arm64.deb
 
 ---
 
+### Install OpenTelemetry Collector (x86_64) ubuntu
+
+```### Install OpenTelemetry Collector (x86_64)
+
+```cd /tmp
+
+wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.130.0/otelcol-contrib_0.130.0_linux_amd64.tar.gz
+
+tar -xzf otelcol-contrib_0.130.0_linux_amd64.tar.gz
+
+sudo mkdir -p /opt/otel
+
+sudo cp otelcol-contrib /opt/otel/
+
+Verify:
+
+/opt/otel/otelcol-contrib --version
+
+Create Config
+
+sudo mkdir -p /etc/otel
+
+Create Systemd Service
+
+sudo vi /etc/systemd/system/otelcol.service
+
+[Unit]
+Description=OpenTelemetry Collector
+After=network.target
+
+[Service]
+Type=simple
+
+ExecStart=/opt/otel/otelcol-contrib \
+  --config=/etc/otel/config.yaml
+
+Restart=always
+RestartSec=5
+
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+
+start service
+
+sudo systemctl daemon-reload
+
+sudo systemctl enable otelcol
+
+sudo systemctl start otelcol
+
+
+```
+
+---
+```
+
+---
+
 ## 📁 Step 3: Configure Directory Structure
 
 ### Production-Ready Layout
