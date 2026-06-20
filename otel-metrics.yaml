@@ -1,0 +1,155 @@
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      disk: {}
+      filesystem:
+        include_virtual_filesystems: false
+        exclude_mount_points:
+          match_type: regexp
+          mount_points:
+            - ^/snap/.*
+            - ^/run/.*
+            - ^/sys/.*
+            - ^/proc/.*
+            - ^/dev/.*
+            - ^/boot/.*
+        exclude_fs_types:
+          match_type: strict
+          fs_types:
+            - squashfs
+            - tmpfs
+            - devtmpfs
+            - overlay
+            - nsfs
+            - cgroup
+            - cgroup2
+        metrics:
+          system.filesystem.usage:
+            enabled: true
+          system.filesystem.utilization:
+            enabled: true
+          system.filesystem.inodes.usage:
+            enabled: true
+      network: {}
+      load: {}
+      paging: {}
+      processes: {}
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        scrape_process_delay: 0s
+        metrics:
+          process.cpu.time:
+            enabled: true
+          process.cpu.utilization:
+            enabled: true
+          process.memory.usage:
+            enabled: true
+          process.memory.virtual:
+            enabled: true
+          process.disk.io:
+            enabled: true
+          process.threads:
+            enabled: true
+          process.open_file_descriptors:
+            enabled: true
+          process.signals_pending:
+            enabled: false
+        include:
+          names:
+            - postgres
+            - postmaster
+            - pg_wal
+            - pg_checkpointer
+            - pg_autovacuum
+            - node
+            - java
+            - python
+            - python3
+            - nginx
+            - otelcol
+            - otelcol-contrib
+          match_type: regexp
+
+processors:
+  batch/metrics:
+    timeout: '15s'
+    send_batch_size: 2000
+    send_batch_max_size: 2000
+
+  resourcedetection/ec2:
+    detectors:
+      - 'ec2'
+    ec2:
+      tags:
+        - '^Name$'
+        - '^Module$'
+
+  resourcedetection/system:
+    detectors:
+      - 'system'
+    system:
+      hostname_sources:
+        - 'os'
+
+  transform/process:
+    error_mode: ignore
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["process_name"], resource.attributes["process.executable.name"])
+          - set(attributes["process_pid"], resource.attributes["process.pid"])
+          - set(attributes["process_owner"], resource.attributes["process.owner"])
+          - set(attributes["process_cmd"], resource.attributes["process.command.line"])
+
+  resource/metrics:
+    attributes:
+      - action: upsert
+        key: service.name
+        value: db
+      - action: upsert
+        key: field_tier
+        value: database
+      - action: upsert
+        key: field_platform
+        value: Linux-os
+      - action: upsert
+        key: field_env
+        value: prod
+      - action: upsert
+        key: field_appname
+        value: postgres
+
+exporters:
+  prometheusremotewrite/victoriametrics:
+    endpoint: 'http://endpoint:8428/api/v1/write'
+    tls:
+      insecure: true
+    resource_to_telemetry_conversion:
+      enabled: true
+    external_labels:
+      cluster: linux-prod
+
+service:
+  pipelines:
+    metrics:
+      receivers:
+        - hostmetrics
+      processors:
+        - resourcedetection/ec2
+        - resourcedetection/system
+        - resource/metrics
+        - transform/process
+        - batch/metrics
+      exporters:
+        - prometheusremotewrite/victoriametrics
