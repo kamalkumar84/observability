@@ -62,3 +62,60 @@ Directory structure:
 ├── tempo/
 ├── otel-gateway/
 └── docker-network/
+
+here we have need data in /data partition
+
+Directory Structure
+mkdir -p \
+/data/grafana/data \
+/data/victoriametrics/data \
+/data/loki/data \
+/data/loki/config \
+/data/tempo/data \
+/data/tempo/config \
+/data/otel/config \
+/data/docker-compose
+
+Store all compose files under:
+
+/opt/monitoring/
+
+and all persistent data under:
+
+/data/
+
+create config for loki
+
+mkdir -p /data/loki/config
+
+Tempo config
+mkdir -p /data/tempo/config
+
+Otel collector config
+
+mkdir -p /data/otel/config
+
+Startup Order
+
+cd /opt/monitoring/victoriametrics && docker compose up -d
+
+cd /opt/monitoring/loki && docker compose up -d
+
+cd /opt/monitoring/tempo && docker compose up -d
+
+cd /opt/monitoring/otel-gateway && docker compose up -d
+
+cd /opt/monitoring/grafana && docker compose up -d
+
+verify
+docker ps
+
+| Service         | URL                           |
+| --------------- | ----------------------------- |
+| Grafana         | `http://SERVER_IP:3000`       |
+| VictoriaMetrics | `http://SERVER_IP:8428`       |
+| Loki            | `http://SERVER_IP:3100/ready` |
+| Tempo           | `http://SERVER_IP:3200/ready` |
+| OTEL Gateway    | `4317/4318` (OTLP endpoints)  |
+
+
