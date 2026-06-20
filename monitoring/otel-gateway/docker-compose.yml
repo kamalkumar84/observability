@@ -1,0 +1,15 @@
+services:
+  otel-gateway:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-gateway
+    restart: unless-stopped
+
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+
+    volumes:
+      - /data/otel/config/config.yaml:/etc/otelcol/config.yaml
+
+    command:
+      - --config=/etc/otelcol/config.yaml
